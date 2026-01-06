@@ -265,7 +265,7 @@ export default function BillingPage() {
         <div className="print-only text-lg sm:text-lg p-2 w-[58mm] max-w-[58mm] mx-auto">
           <div className="text-center mb-2 pb-1">
             <div className="font-black text-lg tracking-tight">S.A.R Food House</div>
-             <div className="text-base">Kotapalli Circle, opp: TVS Showroom, Pillar</div>
+             <div className="text-base">Kotapalli Circle, opp: TVS Showroom, Piler</div>
               <div className="text-base mt-1">Phone: 9398525322,9398969430</div>
                <div className="text-xs mt-1 border-t border-dashed pt-1">
                  Bill: {lastOrder.id.slice(-6)} | {new Date(lastOrder.createdAt).toLocaleString('en-IN')}
@@ -274,7 +274,7 @@ export default function BillingPage() {
                    </div>
                      <div className="border-t border-dashed my-1" />
                        {lastOrder.items.map((item) => (            
-                         <div key={item.id} className="flex justify-between text-sm my-1 ">               
+                         <div key={item.id} className="flex justify-between text-lg my-1 ">               
                          <span className="truncate flex-1">{item.name} × {item.qty}</span>              
                           <span className="w-16 text-right font-medium">₹{item.price * item.qty}</span>             
                           </div>           ))}           
