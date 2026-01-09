@@ -28,7 +28,7 @@ export default function ReportsPage() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
 
-  // auth guard
+  // 🔐 Auth guard
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace("/login");
@@ -50,6 +50,7 @@ export default function ReportsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allOrders]);
 
+  // 📅 Date filter logic
   const applyRange = (
     range: RangePreset,
     fromDate?: string,
@@ -75,7 +76,6 @@ export default function ReportsPage() {
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
       end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     } else {
-      // CUSTOM
       if (!fromDate || !toDate) {
         setOrders([]);
         setSummary(null);
@@ -83,7 +83,7 @@ export default function ReportsPage() {
       }
       start = new Date(fromDate);
       end = new Date(toDate);
-      end.setDate(end.getDate() + 1); // include full "to" day
+      end.setDate(end.getDate() + 1);
     }
 
     const filtered = allOrders.filter((o) => {
@@ -107,9 +107,24 @@ export default function ReportsPage() {
     setSummary(base);
   };
 
+  // 🧠 NEW: Group items by category
+  const groupItemsByCategory = (items: any[]) => {
+    return items.reduce((acc: Record<string, any[]>, item) => {
+      const category = item.category || "Others";
+
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+
+      acc[category].push(item);
+      return acc;
+    }, {});
+  };
+
   return (
     <div className="no-print h-full p-4 bg-slate-200">
       <div className="max-w-4xl mx-auto space-y-4">
+
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
           <div className="flex gap-2">
@@ -169,66 +184,56 @@ export default function ReportsPage() {
           </h1>
           {summary ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="p-3 rounded-xl bg-slate-50 border">
                 <div className="text-xs text-slate-500">Total sales</div>
-                <div className="text-lg font-semibold text-slate-900">
-                  ₹{summary.totalAmount}
-                </div>
+                <div className="text-lg font-semibold">₹{summary.totalAmount}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="p-3 rounded-xl bg-slate-50 border">
                 <div className="text-xs text-slate-500">Bills</div>
-                <div className="text-lg font-semibold text-slate-900">
-                  {summary.totalOrders}
-                </div>
+                <div className="text-lg font-semibold">{summary.totalOrders}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="p-3 rounded-xl bg-slate-50 border">
                 <div className="text-xs text-slate-500">Cash</div>
-                <div className="text-lg font-semibold text-slate-900">
-                  ₹{summary.byPayment.CASH}
-                </div>
+                <div className="text-lg font-semibold">₹{summary.byPayment.CASH}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="p-3 rounded-xl bg-slate-50 border">
                 <div className="text-xs text-slate-500">UPI</div>
-                <div className="text-lg font-semibold text-slate-900">
-                  ₹{summary.byPayment.UPI}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  Card: ₹{summary.byPayment.CARD}
-                </div>
+                <div className="text-lg font-semibold">₹{summary.byPayment.UPI}</div>
+                <div className="text-xs mt-1">Card: ₹{summary.byPayment.CARD}</div>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-slate-500">
-              No data for this period.
-            </div>
+            <div className="text-sm text-slate-500">No data for this period.</div>
           )}
         </div>
 
         {/* Bills table */}
         <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4">
-          <h2 className="text-md font-semibold text-slate-900 mb-2">
+          <h2 className="text-md font-semibold mb-2">
             Bills in selected period
           </h2>
+
           {orders.length === 0 ? (
-            <div className="text-sm text-slate-500">
-              No bills in this period.
-            </div>
+            <div className="text-sm text-slate-500">No bills found.</div>
           ) : (
             <div className="overflow-auto">
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-600">
+                  <tr className="bg-slate-50">
                     <th className="border px-2 py-1 text-left">Date</th>
                     <th className="border px-2 py-1 text-left">Time</th>
                     <th className="border px-2 py-1 text-left">ID</th>
-                    <th className="border px-2 py-1 text-left">Items</th>
+                    <th className="border px-2 py-1 text-left">Items (Category-wise)</th>
                     <th className="border px-2 py-1 text-right">Total</th>
                     <th className="border px-2 py-1 text-left">Payment</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {orders.map((o) => {
                     const d = new Date(o.createdAt);
+                    const grouped = groupItemsByCategory(o.items);
+
                     return (
                       <tr key={o.id} className="hover:bg-slate-50">
                         <td className="border px-2 py-1">
@@ -240,15 +245,27 @@ export default function ReportsPage() {
                         <td className="border px-2 py-1">
                           {o.id.slice(-6)}
                         </td>
+
+                        {/* ✅ CATEGORY-WISE ITEMS */}
                         <td className="border px-2 py-1">
-                          {o.items
-                            .map((i) => `${i.name} x${i.qty}`)
-                            .join(", ")}
+                          {Object.entries(grouped).map(([category, items]) => (
+                            <div key={category} className="mb-1">
+                              <div className="font-semibold">{category}</div>
+                              <div className="pl-2 text-slate-600">
+                                {(items as any[])
+                                  .map((i) => `${i.name} x${i.qty}`)
+                                  .join(", ")}
+                              </div>
+                            </div>
+                          ))}
                         </td>
+
                         <td className="border px-2 py-1 text-right">
                           ₹{o.total}
                         </td>
-                        <td className="border px-2 py-1">{o.paymentMethod}</td>
+                        <td className="border px-2 py-1">
+                          {o.paymentMethod}
+                        </td>
                       </tr>
                     );
                   })}
@@ -257,6 +274,7 @@ export default function ReportsPage() {
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
