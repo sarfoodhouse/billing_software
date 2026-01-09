@@ -16,6 +16,8 @@ type Summary = {
   };
 };
 
+type CategorySummary = Record<string, number>;
+
 type RangePreset = "TODAY" | "LAST_7" | "LAST_30" | "CUSTOM";
 
 export default function ReportsPage() {
@@ -24,9 +26,11 @@ export default function ReportsPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [categorySummary, setCategorySummary] =
+    useState<CategorySummary>({});
   const [preset, setPreset] = useState<RangePreset>("TODAY");
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   // 🔐 Auth guard
   useEffect(() => {
@@ -46,11 +50,12 @@ export default function ReportsPage() {
     } else {
       setOrders([]);
       setSummary(null);
+      setCategorySummary({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allOrders]);
 
-  // 📅 Date filter logic
+  // 📅 Apply date range filter
   const applyRange = (
     range: RangePreset,
     fromDate?: string,
@@ -59,6 +64,7 @@ export default function ReportsPage() {
     if (!allOrders.length) {
       setOrders([]);
       setSummary(null);
+      setCategorySummary({});
       return;
     }
 
@@ -79,6 +85,7 @@ export default function ReportsPage() {
       if (!fromDate || !toDate) {
         setOrders([]);
         setSummary(null);
+        setCategorySummary({});
         return;
       }
       start = new Date(fromDate);
@@ -99,23 +106,32 @@ export default function ReportsPage() {
       byPayment: { CASH: 0, UPI: 0, CARD: 0 },
     };
 
+    const categoryTotals: CategorySummary = {};
+
     filtered.forEach((o) => {
       base.totalAmount += o.total;
       base.byPayment[o.paymentMethod] += o.total;
+
+      o.items.forEach((item) => {
+        const category = item.category || "Others";
+        const itemTotal = item.price * item.qty;
+
+        if (!categoryTotals[category]) {
+          categoryTotals[category] = 0;
+        }
+        categoryTotals[category] += itemTotal;
+      });
     });
 
     setSummary(base);
+    setCategorySummary(categoryTotals);
   };
 
-  // 🧠 NEW: Group items by category
+  // 🧠 Group items by category (for table display)
   const groupItemsByCategory = (items: any[]) => {
     return items.reduce((acc: Record<string, any[]>, item) => {
       const category = item.category || "Others";
-
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-
+      if (!acc[category]) acc[category] = [];
       acc[category].push(item);
       return acc;
     }, {});
@@ -137,8 +153,8 @@ export default function ReportsPage() {
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs border ${
                   preset === r
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-700 border-slate-300"
+                    ? "bg-slate-900 text-white"
+                    : "bg-white text-slate-700"
                 }`}
               >
                 {r === "TODAY"
@@ -156,36 +172,35 @@ export default function ReportsPage() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="border rounded px-2 py-1 bg-white"
+              className="border rounded px-2 py-1"
             />
             <span>to</span>
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="border rounded px-2 py-1 bg-white"
+              className="border rounded px-2 py-1"
             />
             <button
               onClick={() => {
                 setPreset("CUSTOM");
                 applyRange("CUSTOM", from, to);
               }}
-              className="px-3 py-1.5 rounded-lg border bg-white text-slate-700 text-xs"
+              className="px-3 py-1.5 rounded-lg border bg-white"
             >
               Apply
             </button>
           </div>
         </div>
 
-        {/* Summary */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4">
-          <h1 className="text-lg font-semibold text-slate-900 mb-2">
-            Sales Summary
-          </h1>
+        {/* Sales Summary */}
+        <div className="bg-white rounded-2xl shadow-md border p-4">
+          <h1 className="text-lg font-semibold mb-3">Sales Summary</h1>
+
           {summary ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
               <div className="p-3 rounded-xl bg-slate-50 border">
-                <div className="text-xs text-slate-500">Total sales</div>
+                <div className="text-xs text-slate-500">Total Sales</div>
                 <div className="text-lg font-semibold">₹{summary.totalAmount}</div>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border">
@@ -197,18 +212,43 @@ export default function ReportsPage() {
                 <div className="text-lg font-semibold">₹{summary.byPayment.CASH}</div>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border">
-                <div className="text-xs text-slate-500">UPI</div>
-                <div className="text-lg font-semibold">₹{summary.byPayment.UPI}</div>
-                <div className="text-xs mt-1">Card: ₹{summary.byPayment.CARD}</div>
+                <div className="text-xs text-slate-500">UPI / Card</div>
+                <div className="text-sm">UPI ₹{summary.byPayment.UPI}</div>
+                <div className="text-sm">Card ₹{summary.byPayment.CARD}</div>
               </div>
             </div>
           ) : (
-            <div className="text-sm text-slate-500">No data for this period.</div>
+            <div className="text-sm text-slate-500">No data available.</div>
           )}
         </div>
 
-        {/* Bills table */}
-        <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4">
+        {/* Category-wise Sales */}
+        <div className="bg-white rounded-2xl shadow-md border p-4">
+          <h2 className="text-md font-semibold mb-3">
+            Category-wise Sales
+          </h2>
+
+          {Object.keys(categorySummary).length === 0 ? (
+            <div className="text-sm text-slate-500">
+              No category data.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              {Object.entries(categorySummary).map(([cat, amt]) => (
+                <div
+                  key={cat}
+                  className="flex justify-between p-3 rounded-xl bg-slate-50 border"
+                >
+                  <span className="font-medium">{cat}</span>
+                  <span className="font-semibold">₹{amt}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bills Table */}
+        <div className="bg-white rounded-2xl shadow-md border p-4">
           <h2 className="text-md font-semibold mb-2">
             Bills in selected period
           </h2>
@@ -223,19 +263,20 @@ export default function ReportsPage() {
                     <th className="border px-2 py-1 text-left">Date</th>
                     <th className="border px-2 py-1 text-left">Time</th>
                     <th className="border px-2 py-1 text-left">ID</th>
-                    <th className="border px-2 py-1 text-left">Items (Category-wise)</th>
+                    <th className="border px-2 py-1 text-left">
+                      Items (Category-wise)
+                    </th>
                     <th className="border px-2 py-1 text-right">Total</th>
                     <th className="border px-2 py-1 text-left">Payment</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {orders.map((o) => {
                     const d = new Date(o.createdAt);
                     const grouped = groupItemsByCategory(o.items);
 
                     return (
-                      <tr key={o.id} className="hover:bg-slate-50">
+                      <tr key={o.id}>
                         <td className="border px-2 py-1">
                           {d.toLocaleDateString()}
                         </td>
@@ -245,12 +286,10 @@ export default function ReportsPage() {
                         <td className="border px-2 py-1">
                           {o.id.slice(-6)}
                         </td>
-
-                        {/* ✅ CATEGORY-WISE ITEMS */}
                         <td className="border px-2 py-1">
-                          {Object.entries(grouped).map(([category, items]) => (
-                            <div key={category} className="mb-1">
-                              <div className="font-semibold">{category}</div>
+                          {Object.entries(grouped).map(([cat, items]) => (
+                            <div key={cat} className="mb-1">
+                              <div className="font-semibold">{cat}</div>
                               <div className="pl-2 text-slate-600">
                                 {(items as any[])
                                   .map((i) => `${i.name} x${i.qty}`)
@@ -259,7 +298,6 @@ export default function ReportsPage() {
                             </div>
                           ))}
                         </td>
-
                         <td className="border px-2 py-1 text-right">
                           ₹{o.total}
                         </td>
