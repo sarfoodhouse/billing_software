@@ -13,7 +13,7 @@ export default function RootLayout({
         {/* Sidebar */}
         <aside className="no-print w-64 bg-slate-900 text-slate-100 flex flex-col shadow-lg">
           <div className="px-5 py-6 border-b border-slate-700 flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold">
+            <div className="h-11 w-7 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold">
               SAR
             </div>
             <div>

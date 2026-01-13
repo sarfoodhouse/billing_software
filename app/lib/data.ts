@@ -134,4 +134,7 @@ export const products: Product[] = [
 { id: "ic26", name: "Lots of Nuts", price: 150, category: "Ice Cream" },
 { id: "ic27", name: "Extra Toppings", price: 10, category: "Ice Cream" },
 
+  // Water Bottol
+{ id: "bw1", name: "Water", price: 20, category: "Water" },
+
 ];

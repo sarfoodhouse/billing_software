@@ -1,5 +1,5 @@
 // Add this to your existing types.ts
-export type Category = "Shawarma" | "Puri"| "Pav Bhaji" | "Fries & Sandwich" | "Chaats" | "Juice" | "Ice Cream" | "Vada Pav" ;
+export type Category = "Shawarma" | "Puri"| "Pav Bhaji" | "Fries & Sandwich" | "Chaats" | "Juice" | "Ice Cream" | "Vada Pav" | "Water" ;
 
 export interface Product {
   id: string;
@@ -22,5 +22,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   total: number;
-  paymentMethod: 'CASH' | 'UPI' | 'CARD';
+  paymentMethod: "CASH" | "UPI" | "CARD";
+  tableNumber?: string | null;
+  isParcel?: boolean;
 }
+
