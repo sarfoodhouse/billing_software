@@ -112,8 +112,9 @@ export default function ReportsPage() {
       base.totalAmount += o.total;
       base.byPayment[o.paymentMethod] += o.total;
 
-      o.items.forEach((item) => {
-        const category = item.category || "Others";
+     o.items.forEach((item) => {
+     const category = (item as any).category || "Others";
+
         const itemTotal = item.price * item.qty;
 
         if (!categoryTotals[category]) {
@@ -131,7 +132,7 @@ export default function ReportsPage() {
   const getCategoryQuantity = (category: string): number => {
     return orders.reduce((total, order) => {
       return total + order.items.reduce((catTotal, item) => {
-        if ((item.category || "Others") === category) {
+        if (((item as any).category || "Others") === category) {
           return catTotal + item.qty;
         }
         return catTotal;
