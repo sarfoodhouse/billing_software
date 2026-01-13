@@ -376,7 +376,7 @@ export default function BillingPage() {
           {lastOrder.items.map((item) => (
             <div
               key={item.id}
-              className="flex justify-between text-lg my-1 "
+              className="flex justify-between text-sm my-1 "
             >
               <span className="truncate flex-1">
                 {item.name} × {item.qty}
