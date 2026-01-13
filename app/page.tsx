@@ -345,7 +345,7 @@ export default function BillingPage() {
 
       {/* Print Receipt - Optimized for 58mm thermal */}
       {showReceipt && lastOrder && (
-        <div className="print-only text-lg sm:text-lg p-2 w-[58mm] max-w-[58mm] mx-auto">
+        <div className="print-only text-sm sm:text-sm p-2 w-[58mm] max-w-[58mm] mx-auto">
           <div className="text-center mb-2 pb-1">
             <div className="font-black text-lg tracking-tight">
               S.A.R Food House
