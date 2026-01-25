@@ -137,4 +137,8 @@ export const products: Product[] = [
   // Water Bottol
 { id: "bw1", name: "Water", price: 20, category: "Water" },
 
+  //Biryani
+  { id: "by1", name: "Hyd chicken dumbiryani", price: 20, category: "Biryani" },
+  { id: "by2", name: "Hyd Kuska Rice", price: 20, category: "Biryani" },
+
 ];
