@@ -1,5 +1,5 @@
 // Add this to your existing types.ts
-export type Category = "Shawarma" | "Puri"| "Pav Bhaji" | "Fries & Sandwich" | "Chaats" | "Juice" | "Ice Cream" | "Vada Pav" | "Water" ;
+export type Category = "Shawarma" | "Puri"| "Pav Bhaji" | "Fries & Sandwich" | "Chaats" | "Juice" | "Ice Cream" | "Vada Pav" | "Water" | "Biryani" ;
 
 export interface Product {
   id: string;
