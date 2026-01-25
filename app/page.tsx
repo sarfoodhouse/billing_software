@@ -15,6 +15,7 @@ const categories = [
   "Chaats",
   "Vada Pav",
   "Pav Bhaji",
+  "Biryani",
   "Juice",
   "Ice Cream",
   "Water",
