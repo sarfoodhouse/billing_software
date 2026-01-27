@@ -139,31 +139,26 @@ export default function BillingPage() {
         <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-2rem)]">
           {/* PRODUCTS */}
           <section className="flex-1 bg-white rounded-2xl shadow-xl p-4 flex flex-col">
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-3">
-              <h1 className="text-lg font-bold">Menu Items</h1>
-              <span className="text-sm text-slate-500">Tap to add</span>
-            </div>
-
             {/* CATEGORY BAR */}
-            <div className="sticky top-0 z-10 bg-white pb-3 border-b mb-3">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-5 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all
-                      ${
-                        activeCategory === cat
-                          ? "bg-blue-600 text-white shadow-md scale-105"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+<div className="sticky top-0 z-10 bg-white pb-3 border-b mb-3">
+  <div className="grid grid-cols-7 gap-2">
+    {categories.map((cat) => (
+      <button
+        key={cat}
+        onClick={() => setActiveCategory(cat)}
+        className={`px-3 py-2 rounded-full font-bold text-sm transition-all text-center
+          ${
+            activeCategory === cat
+              ? "bg-blue-600 text-white shadow-md scale-105"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+      >
+        {cat}
+      </button>
+    ))}
+  </div>
+</div>
+
 
             {/* PRODUCTS GRID */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3 overflow-y-auto auto-rows-max">
