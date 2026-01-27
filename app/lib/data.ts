@@ -138,7 +138,7 @@ export const products: Product[] = [
 { id: "bw1", name: "Water", price: 20, category: "Water" },
 
   //Biryani
-  { id: "by1", name: "Hyd chicken dumbiryani", price: 150, category: "Biryani" },
-  { id: "by2", name: "Hyd Kuska Rice", price: 80, category: "Biryani" },
+  { id: "by1", name: "Hyd chicken dumbiryani", price: 120, category: "Biryani" },
+  { id: "by2", name: "Hyd Kuska Rice", price: 70, category: "Biryani" },
 
 ];
