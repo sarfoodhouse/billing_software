@@ -141,4 +141,8 @@ export const products: Product[] = [
   { id: "by1", name: "Hyd chicken dumbiryani", price: 120, category: "Biryani" },
   { id: "by2", name: "Hyd Kuska Rice", price: 80, category: "Biryani" },
 
+  //Grill Chicken
+  { id: "gc1", name: "Grill Chicken Full", price: 400, category: "Grill Chicken" },
+  { id: "gc2", name: "Grill Chicken Half", price: 230, category: "Grill Chicken" },
+  
 ];
