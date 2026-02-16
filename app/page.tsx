@@ -20,6 +20,7 @@ const categories = [
   "Ice Cream",
   "Water",
   "Grill Chicken",
+  "Haleem"
 ];
 
 // New: table numbers list
