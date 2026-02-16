@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { products } from "./lib/data";
 import type { OrderItem, Order } from "./lib/types";
@@ -8,405 +7,354 @@ import { saveOrder } from "./lib/storage";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "./lib/auth";
 
-const categories = [
-  "Shawarma",
-  "Fries & Sandwich",
-  "Puri",
-  "Chaats",
-  "Vada Pav",
-  "Pav Bhaji",
-  "Juice",
-  "Ice Cream",
-  "Water",
-];
-
-// New: table numbers list
+const categories = ["Shawarma", "Fries & Sandwich", "Puri", "Chaats", "Vada Pav", "Pav Bhaji", "Juice", "Ice Cream", "Water", "Grill Chicken", "Haleem"];
 const tableNumbers = ["T1", "T2", "T3", "T4", "T5", "B1", "B2", "B3", "B4"];
+
+interface ActiveTable {
+  items: OrderItem[];
+  isParcel: boolean;
+}
 
 export default function BillingPage() {
   const [mounted, setMounted] = useState(false);
-  const [now, setNow] = useState<string>("");
   const [cart, setCart] = useState<OrderItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "UPI" | "CARD">(
-    "CASH"
-  );
-
-  // New: table number and parcel state
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "UPI" | "CARD">("CASH");
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [isParcel, setIsParcel] = useState<boolean>(false);
-
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
   const [activeCategory, setActiveCategory] = useState("Shawarma");
+  const [occupiedTables, setOccupiedTables] = useState<Record<string, ActiveTable>>({});
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [customerName, setCustomerName] = useState(""); 
+  const [parcelCharge, setParcelCharge] = useState<number>(0); 
 
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/login");
-    }
-  }, [router]);
-
-  useEffect(() => {
+    if (!isAuthenticated()) router.replace("/login");
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      setNow(new Date().toISOString());
-    }
-  }, [mounted, cart, paymentMethod, selectedTable, isParcel]);
+  }, [router]);
 
   if (!mounted) return null;
 
-  const filteredProducts = products.filter(
-    (p) => p.category === activeCategory
-  );
+  const filteredProducts = products
+    .filter((p) => p.category === activeCategory)
+    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const addToCart = (prod: {
-    id: string;
-    name: string;
-    price: number;
-    image?: string;
-  }) => {
+  const addToCart = (prod: any) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === prod.id);
       if (existing) {
-        return prev.map((i) =>
-          i.id === prod.id ? { ...i, qty: i.qty + 1 } : i
-        );
+        return prev.map((i) => (i.id === prod.id ? { ...i, qty: i.qty + 1 } : i));
       }
       return [...prev, { ...prod, qty: 1 }];
     });
-  };
-
-  const updateQty = (id: string, qty: number) => {
-    if (qty <= 0) {
-      setCart((prev) => prev.filter((i) => i.id !== id));
-    } else {
-      setCart((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, qty } : i))
-      );
+    if (isParcel) {
+      setParcelCharge(prev => prev + 10);
     }
   };
 
-  const clearCart = () => setCart([]);
+  const updateQty = (id: string, qty: number) => {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+    const qtyDiff = qty - item.qty;
+    if (qty <= 0) {
+      setCart((prev) => prev.filter((i) => i.id !== id));
+      if (isParcel) {
+        setParcelCharge(prev => Math.max(0, prev - 10 * item.qty));
+      }
+    } else {
+      setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty } : i)));
+      if (isParcel) {
+        setParcelCharge(prev => Math.max(0, prev + 10 * qtyDiff));
+      }
+    }
+  };
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
-
-  // New: extra 10 for parcel
-  const parcelCharge = isParcel ? 10 : 0;
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const total = subtotal + parcelCharge;
+  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
 
+  const handleTableSelect = (t: string) => {
+    if (selectedTable === t) {
+      setSelectedTable(null);
+      setCart([]);
+      setCustomerName("");
+      setParcelCharge(0);
+      return;
+    }
+    setSelectedTable(t);
+    if (occupiedTables[t]) {
+      setCart(occupiedTables[t].items);
+      setIsParcel(occupiedTables[t].isParcel);
+      const newParcelCharge = occupiedTables[t].isParcel ? occupiedTables[t].items.reduce((sum, item) => sum + 10 * item.qty, 0) : 0;
+      setParcelCharge(newParcelCharge);
+    } else {
+      setCart([]);
+      setIsParcel(false);
+      setCustomerName("");
+      setParcelCharge(0);
+    }
+  };
+
+  const holdOrder = () => {
+    if (!selectedTable || cart.length === 0) return;
+    setOccupiedTables(prev => ({
+      ...prev,
+      [selectedTable]: { items: cart, isParcel }
+    }));
+    setCart([]);
+    setSelectedTable(null);
+    setIsParcel(false);
+    setCustomerName("");
+    setParcelCharge(0);
+  };
+
+  // Directly call the save and print logic
   const handleSaveAndPrint = () => {
     if (cart.length === 0) return;
-
-    // Extend Order type locally with tableNumber and isParcel if needed
-    const order: Order & {
-      tableNumber?: string | null;
-      isParcel?: boolean;
-    } = {
+    const order = {
       id: Date.now().toString(),
-      createdAt: now || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       items: cart,
-      subtotal,
       total,
       paymentMethod,
       tableNumber: selectedTable,
       isParcel,
+      customerName: customerName || "Walk-in",
+      parcelCharge,
     };
-
-    saveOrder(order as Order);
-    setLastOrder(order);
+    saveOrder(order); 
+    setLastOrder(order as any); 
     setShowReceipt(true);
 
     setTimeout(() => {
       window.print();
       setShowReceipt(false);
+      if (selectedTable) {
+        const newOccupied = { ...occupiedTables };
+        delete newOccupied[selectedTable];
+        setOccupiedTables(newOccupied);
+      }
       setCart([]);
       setSelectedTable(null);
       setIsParcel(false);
+      setCustomerName("");
+      setParcelCharge(0);
     }, 200);
+  };
+
+  const adjustParcelCharge = (amount: number) => {
+    setParcelCharge(prev => Math.max(0, prev + amount));
   };
 
   return (
     <>
-      <div className="no-print min-h-screen flex flex-col p-3 bg-gradient-to-br from-slate-50 to-slate-200">
-        <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-2rem)]">
-          {/* PRODUCTS */}
-          <section className="flex-1 bg-white rounded-2xl shadow-xl p-4 flex flex-col">
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-3">
-              <h1 className="text-lg font-bold">Menu Items</h1>
-              <span className="text-sm text-slate-500">Tap to add</span>
-            </div>
+      <div className="no-print h-screen w-full bg-slate-100 flex overflow-hidden font-sans p-2 gap-2">
+        
+        {/* LEFT: TABLE STATUS */}
+        <section className="w-28 bg-white rounded-xl border border-slate-200 flex flex-col items-center py-3 overflow-y-auto gap-3 shadow-sm">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Table Status</p>
+          {tableNumbers.map((t) => {
+            const isOccupied = !!occupiedTables[t];
+            return (
+              <button
+                key={t}
+                onClick={() => handleTableSelect(t)}
+                className={`w-18 h-18 rounded-2xl flex flex-col items-center justify-center border-b-4 transition-all active:scale-95 ${
+                  selectedTable === t 
+                    ? "bg-blue-600 border-blue-800 text-white shadow-lg -translate-y-1" 
+                    : isOccupied 
+                      ? "bg-red-500 border-red-700 text-white" 
+                      : "bg-emerald-500 border-emerald-700 text-white"
+                }`}
+              >
+                <span className="text-sm font-black">{t}</span>
+                <span className="text-xs font-bold opacity-80 uppercase">
+                  {isOccupied ? "Busy" : "Free"}
+                </span>
+              </button>
+            );
+          })}
+        </section>
 
-            {/* CATEGORY BAR */}
-            <div className="sticky top-0 z-10 bg-white pb-3 border-b mb-3">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-5 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all
-                      ${
-                        activeCategory === cat
-                          ? "bg-blue-600 text-white shadow-md scale-105"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* PRODUCTS GRID */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3 overflow-y-auto auto-rows-max">
-              {filteredProducts.map((p) => (
+        {/* MIDDLE: MENU SELECTION */}
+        <section className="flex-1 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden border border-slate-200">
+          <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {categories.map((cat) => (
                 <button
-                  key={p.id}
-                  onClick={() => addToCart(p)}
-                  className="border rounded-2xl bg-white hover:bg-blue-50 transition shadow-sm active:scale-95 text-left h-[120px] flex flex-col justify-between"
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm uppercase transition-all ${
+                    activeCategory === cat ? "bg-blue-600 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                  }`}
                 >
-                  {p.image && (
-                    <div className="relative h-16 bg-slate-100 rounded-t-lg overflow-hidden">
-                      <Image
-                        src={p.image}
-                        alt={p.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition"
-                      />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <div className="text-sm font-semibold leading-tight line-clamp-2">
-                      {p.name}
-                    </div>
-
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-sm font-bold text-slate-900">
-                        ₹{p.price}
-                      </span>
-                      <span className="bg-blue-600 text-white px-2 py-[2px] rounded text-[10px] font-bold">
-                        ADD
-                      </span>
-                    </div>
-                  </div>
+                  {cat}
                 </button>
               ))}
             </div>
-          </section>
+            <input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-          {/* CART */}
-          <section className="w-full lg:w-[400px] bg-white rounded-2xl shadow-xl p-4 flex flex-col">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold">Current Order</h2>
+          <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
+            {filteredProducts.map((p) => (
               <button
-                onClick={clearCart}
-                className="text-sm text-red-500"
-                disabled={cart.length === 0}
+                key={p.id}
+                onClick={() => addToCart(p)}
+                className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between min-h-[100px]"
               >
-                Clear
+                <span className="font-bold text-slate-800 text-sm leading-tight">{p.name}</span>
+                <span className="text-blue-600 font-black text-lg mt-2">₹{p.price}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* RIGHT: BILLING PANEL */}
+        <section className="w-96 bg-slate-900 rounded-xl shadow-xl flex flex-col overflow-hidden text-white">
+          <div className="p-4 border-b border-slate-800">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-black text-sm text-slate-500 uppercase tracking-[0.2em]">
+                {selectedTable ? `TABLE ${selectedTable}` : "WALK-IN ORDER"}
+              </h2>
+              <button 
+                onClick={() => {setCart([]); setSelectedTable(null); setIsParcel(false); setCustomerName(""); setParcelCharge(0);}} 
+                className="text-sm text-red-400 font-bold hover:underline"
+              >
+                VOID ALL
               </button>
             </div>
-
-            {/* New: Table & Parcel selectors */}
-            <div className="mb-3 space-y-2">
-              <div>
-                <div className="text-sm font-semibold mb-1">Table</div>
-                <div className="flex flex-wrap gap-1">
-                  {tableNumbers.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() =>
-                        setSelectedTable((prev) => (prev === t ? null : t))
-                      }
-                      className={`px-3 py-1 rounded-lg text-sm font-semibold border ${
-                        selectedTable === t
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold mb-1">Order Type</div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsParcel(false)}
-                    className={`flex-1 py-2 rounded-xl text-sm font-bold border ${
-                      !isParcel
-                        ? "bg-emerald-600 text-white border-emerald-600"
-                        : "bg-slate-100 text-slate-700 border-slate-200"
-                    }`}
-                  >
-                    DINE IN
-                  </button>
-                  <button
-                    onClick={() => setIsParcel(true)}
-                    className={`flex-1 py-2 rounded-xl text-sm font-bold border ${
-                      isParcel
-                        ? "bg-orange-600 text-white border-orange-600"
-                        : "bg-slate-100 text-slate-700 border-slate-200"
-                    }`}
-                  >
-                    PARCEL (+₹10)
-                  </button>
-                </div>
-              </div>
+            
+            <input
+              type="text"
+              placeholder="Customer Name (Optional)"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full px-3 py-2 mb-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {setIsParcel(false); setParcelCharge(0);}} 
+                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${!isParcel ? "bg-emerald-600 border-emerald-600 shadow-lg shadow-emerald-900/20" : "bg-slate-800 border-slate-700 text-slate-500"}`}
+              >
+                DINE-IN
+              </button>
+              <button 
+                onClick={() => {setIsParcel(true); setParcelCharge(10 * totalItems);}} 
+                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${isParcel ? "bg-orange-600 border-orange-600 shadow-lg shadow-orange-900/20" : "bg-slate-800 border-slate-700 text-slate-500"}`}
+              >
+                PARCEL
+              </button>
             </div>
+          </div>
 
-            <div className="flex-1 overflow-auto border rounded-xl mb-4">
-              {cart.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-slate-400">
-                  No items added
-                </div>
-              ) : (
-                cart.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-center p-3 border-b"
-                  >
-                    <div>
-                      <div className="font-semibold">{item.name}</div>
-                      <div className="text-sm text-slate-500">
-                        ₹{item.price} × {item.qty}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateQty(item.id, item.qty - 1)}
-                        className="px-2 border rounded"
-                      >
-                        −
-                      </button>
-                      <span className="font-bold">{item.qty}</span>
-                      <button
-                        onClick={() => updateQty(item.id, item.qty + 1)}
-                        className="px-2 border rounded"
-                      >
-                        +
-                      </button>
-                    </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {cart.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">No items in cart.</p>
+            ) : (
+              cart.map((item) => (
+                <div key={item.id} className="bg-slate-800/40 p-3 rounded-lg flex justify-between items-center border border-slate-800/50">
+                  <div className="flex-1 pr-2">
+                    <p className="text-sm font-bold">{item.name}</p>
+                    <p className="text-sm text-slate-500">₹{item.price} each</p>
                   </div>
-                ))
+                  <div className="flex items-center gap-2 bg-slate-900 rounded p-2">
+                    <button onClick={() => updateQty(item.id, item.qty - 1)} className="w-6 h-6 text-blue-400 font-bold hover:bg-slate-700 rounded">-</button>
+                    <span className="text-sm font-bold w-6 text-center">{item.qty}</span>
+                    <button onClick={() => updateQty(item.id, item.qty + 1)} className="w-6 h-6 text-blue-400 font-bold hover:bg-slate-700 rounded">+</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="p-4 bg-slate-800/90 border-t border-slate-700">
+            <div className="space-y-1 mb-4">
+              <div className="flex justify-between text-sm text-slate-400">
+                <span>Items: {totalItems}</span>
+                <span>Subtotal: ₹{subtotal}</span>
+              </div>
+              {isParcel && (
+                <div className="flex justify-between items-center text-sm text-orange-400">
+                  <span>Parcel Charge</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => adjustParcelCharge(-10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded hover:bg-slate-600">-</button>
+                    <span>₹{parcelCharge}</span>
+                    <button onClick={() => adjustParcelCharge(10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded hover:bg-slate-600">+</button>
+                  </div>
+                </div>
               )}
-            </div>
-
-            <div className="mb-4 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{subtotal}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Parcel Charges</span>
-                <span>₹{parcelCharge}</span>
-              </div>
-              <div className="flex justify-between font-bold text-xl pt-1 border-t">
-                <span>Total</span>
-                <span>₹{total}</span>
+              <div className="flex justify-between items-end pt-2 border-t border-slate-600">
+                <span className="text-white text-lg font-bold uppercase">Total Payable</span>
+                <span className="text-4xl font-black text-white">₹{total}</span>
               </div>
             </div>
-
-            <div className="grid grid-cols-3 gap-2 mb-3">
+            
+            <div className="grid grid-cols-3 gap-2 mb-4">
               {(["CASH", "UPI", "CARD"] as const).map((pm) => (
-                <button
-                  key={pm}
-                  onClick={() => setPaymentMethod(pm)}
-                  className={`py-2 rounded-xl font-bold ${
-                    paymentMethod === pm
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100"
-                  }`}
+                <button 
+                  key={pm} 
+                  onClick={() => setPaymentMethod(pm)} 
+                  className={`py-2 rounded-lg text-sm font-black border transition-all ${paymentMethod === pm ? "bg-white text-slate-900 border-white" : "border-slate-700 text-slate-500 hover:border-slate-500"}`}
                 >
                   {pm}
                 </button>
               ))}
             </div>
 
-            <button
-              onClick={handleSaveAndPrint}
-              disabled={cart.length === 0}
-              className="bg-slate-900 text-white py-4 rounded-2xl font-bold disabled:bg-slate-300"
-            >
-              Save & Print Bill
-            </button>
-          </section>
-        </div>
+            <div className="flex gap-2">
+              <button
+                onClick={holdOrder}
+                disabled={!selectedTable || cart.length === 0}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 py-3 rounded-xl font-bold text-sm uppercase transition-all"
+              >
+                Hold Order
+              </button>
+              <button
+                onClick={handleSaveAndPrint}
+                disabled={cart.length === 0}
+                className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 py-3 rounded-xl font-black text-sm tracking-widest shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+              >
+                SETTLE & PRINT
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Print Receipt - Optimized for 58mm thermal */}
+      <style jsx global>{`
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
+      `}</style>
+
+      {/* THERMAL RECEIPT */}
       {showReceipt && lastOrder && (
-        <div className="print-only text-lg sm:text-lg p-2 w-[58mm] max-w-[58mm] mx-auto">
-          <div className="text-center mb-2 pb-1">
-            <div className="font-black text-lg tracking-tight">
-              S.A.R Food House
-            </div>
-            {/* You can re‑enable address / phone if needed */}
-            {/* <div className="text-base">Kotapalli Circle, opp: TVS Showroom, Piler</div>
-            <div className="text-base mt-1">Phone: 9398525322,9398969430</div>
-            <div className="text-xs mt-1 border-t border-dashed pt-1">
-              Bill: {lastOrder.id.slice(-6)} | {new Date(lastOrder.createdAt).toLocaleString('en-IN')}
-            </div> */}
-            
-            <div className="text-xs font-medium">
-              PMT: {lastOrder.paymentMethod}
-            </div>
-
-            {/* New: show table and parcel on receipt */}
-            {"tableNumber" in lastOrder && lastOrder.tableNumber && (
-              <div className="text-xs font-medium">
-                TABLE: {lastOrder.tableNumber}
-              </div>
-            )}
-            {"isParcel" in lastOrder && lastOrder.isParcel && (
-              <div className="text-xs font-medium">PARCEL</div>
-            )}
+        <div className="print-only hidden p-2 w-[58mm] mx-auto text-black font-mono">
+          <div className="text-center font-bold text-xl mb-1">S.A.R FOOD HOUSE</div>
+          <div className="text-[15px] text-center border-b border-dashed pb-1 mb-2 italic">
+            {lastOrder.tableNumber ? `Table: ${lastOrder.tableNumber}` : 'Parcel'} | {new Date().toLocaleTimeString()}
           </div>
-
-          <div className="border-t border-dashed my-1" />
-
           {lastOrder.items.map((item) => (
-          <div
-            key={item.id}
-            className="flex justify-between text-lg my-1 items-start gap-2"
-           >
-    
-          <span className="flex-1 break-words">
-             {item.name} × {item.qty}
-          </span>
-    
-    
-         <span className="w-20 text-right font-medium flex-shrink-0">
-            ₹{item.price * item.qty}
-          </span>
-         </div>
-       ))}
-
-{/* Do the same for the Parcel Charge line */}
-{"isParcel" in lastOrder && lastOrder.isParcel && (
-  <div className="flex justify-between text-lg my-1 items-start gap-2">
-    <span className="flex-1 break-words">Parcel Charge</span>
-    <span className="w-20 text-right font-medium flex-shrink-0">₹10</span>
-  </div>
-)}
-
-          <div className="border-t border-dashed my-1 pt-1" />
-          <div className="flex justify-between font-bold text-lg mb-2">
-            <span>Total</span>
-            <span>₹{lastOrder.total.toFixed(0)}</span>
+            <div key={item.id} className="flex justify-between text-[15px] mb-1">
+              <span className="flex-1">{item.name} x{item.qty}</span>
+              <span>₹{item.price * item.qty}</span>
+            </div>
+          ))}
+          {lastOrder.isParcel && <div className="flex justify-between text-[15px]"><span>Parcel Charge</span><span>₹{lastOrder.parcelCharge}</span></div>}
+          <div className="border-t border-dashed mt-1 pt-1 flex justify-between font-bold text-base">
+            <span>TOTAL</span>
+            <span>₹{lastOrder.total}</span>
           </div>
-          <div className="text-center text-xs font-medium text-slate-600 pb-2">
-            Thank you! Visit again.
-          </div>
+          <div className="text-center text-[15px] mt-2">Payment: {lastOrder.paymentMethod}</div>
+          <div className="text-center text-[15px] mt-4 uppercase">--- Thank You ---</div>
         </div>
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Order } from "../lib/types";
 import { loadOrders } from "../lib/storage";
@@ -9,59 +9,38 @@ import { isAuthenticated } from "../lib/auth";
 type Summary = {
   totalAmount: number;
   totalOrders: number;
-  byPayment: {
-    CASH: number;
-    UPI: number;
-    CARD: number;
-  };
+  byPayment: { CASH: number; UPI: number; CARD: number };
 };
 
-type CategorySummary = Record<string, number>;
-
+type CategoryStats = { qty: number; total: number };
 type RangePreset = "TODAY" | "LAST_7" | "LAST_30" | "CUSTOM";
 
 export default function ReportsPage() {
   const router = useRouter();
-
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [categorySummary, setCategorySummary] =
-    useState<CategorySummary>({});
+  const [categorySummary, setCategorySummary] = useState<Record<string, CategoryStats>>({});
   const [preset, setPreset] = useState<RangePreset>("TODAY");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  // 🔐 Auth guard
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/login");
-    }
+    if (!isAuthenticated()) router.replace("/login");
   }, [router]);
 
   useEffect(() => {
-    const all = loadOrders();
-    setAllOrders(all);
+    const data = loadOrders();
+    setAllOrders([...data].reverse());
   }, []);
 
-  useEffect(() => {
-    if (allOrders.length) {
-      applyRange("TODAY");
-    } else {
-      setOrders([]);
-      setSummary(null);
-      setCategorySummary({});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allOrders]);
-
-  // 📅 Apply date range filter
-  const applyRange = (
+  const applyRange = useCallback((
     range: RangePreset,
+    ordersList: Order[],
     fromDate?: string,
     toDate?: string
   ) => {
-    if (!allOrders.length) {
+    if (!ordersList.length) {
       setOrders([]);
       setSummary(null);
       setCategorySummary({});
@@ -74,28 +53,24 @@ export default function ReportsPage() {
 
     if (range === "TODAY") {
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else if (range === "LAST_7") {
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else if (range === "LAST_30") {
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else {
-      if (!fromDate || !toDate) {
-        setOrders([]);
-        setSummary(null);
-        setCategorySummary({});
-        return;
-      }
+      if (!fromDate || !toDate) return;
       start = new Date(fromDate);
+      start.setHours(0, 0, 0, 0);
       end = new Date(toDate);
-      end.setDate(end.getDate() + 1);
+      end.setHours(23, 59, 59, 999);
     }
 
-    const filtered = allOrders.filter((o) => {
+    const filtered = ordersList.filter((o) => {
       const d = new Date(o.createdAt);
-      return d >= start && d < end;
+      return d >= start && d <= end;
     });
 
     setOrders(filtered);
@@ -106,287 +81,164 @@ export default function ReportsPage() {
       byPayment: { CASH: 0, UPI: 0, CARD: 0 },
     };
 
-    const categoryTotals: CategorySummary = {};
+    const catStats: Record<string, CategoryStats> = {};
 
     filtered.forEach((o) => {
       base.totalAmount += o.total;
       base.byPayment[o.paymentMethod] += o.total;
+      
+      o.items.forEach((item) => {
+        const catName = (item as any).category || "Others";
+        const lineTotal = item.price * item.qty;
 
-     o.items.forEach((item) => {
-     const category = (item as any).category || "Others";
-
-        const itemTotal = item.price * item.qty;
-
-        if (!categoryTotals[category]) {
-          categoryTotals[category] = 0;
+        if (!catStats[catName]) {
+          catStats[catName] = { qty: 0, total: 0 };
         }
-        categoryTotals[category] += itemTotal;
+        catStats[catName].qty += item.qty;
+        catStats[catName].total += lineTotal;
       });
     });
 
     setSummary(base);
-    setCategorySummary(categoryTotals);
-  };
+    setCategorySummary(catStats);
+  }, []);
 
-  // ✅ NEW: Count total quantity per category
-  const getCategoryQuantity = (category: string): number => {
-    return orders.reduce((total, order) => {
-      return total + order.items.reduce((catTotal, item) => {
-        if (((item as any).category || "Others") === category) {
-          return catTotal + item.qty;
-        }
-        return catTotal;
-      }, 0);
-    }, 0);
-  };
+  useEffect(() => {
+    applyRange(preset, allOrders, from, to);
+  }, [allOrders, preset, from, to, applyRange]);
 
-  // 🧠 Group items by category (for table display)
-  const groupItemsByCategory = (items: any[]) => {
-    return items.reduce((acc: Record<string, any[]>, item) => {
-      const category = item.category || "Others";
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(item);
-      return acc;
-    }, {});
+  const handleDeleteOrder = (orderId: string) => {
+    if (confirm("Delete this bill?")) {
+      const current = loadOrders();
+      const updated = current.filter((o: Order) => o.id !== orderId);
+      localStorage.setItem("sar_orders", JSON.stringify(updated));
+      setAllOrders([...updated].reverse());
+    }
   };
 
   return (
-    <div className="no-print h-full p-4 bg-slate-200">
-      <div className="max-w-4xl mx-auto space-y-6">
-
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
-          <div className="flex gap-2 flex-wrap">
-            {(["TODAY", "LAST_7", "LAST_30"] as RangePreset[]).map((r) => (
+    <div className="no-print h-screen w-full overflow-y-scroll bg-slate-100 font-sans pb-24">
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        
+        {/* Header Controls */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-2">
+          <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Sales Analytics</h1>
+          <div className="flex flex-wrap gap-2 items-center bg-white p-2 rounded-2xl shadow-sm border">
+             {(["TODAY", "LAST_7", "LAST_30"] as RangePreset[]).map((r) => (
               <button
                 key={r}
-                onClick={() => {
-                  setPreset(r);
-                  applyRange(r);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
-                  preset === r
-                    ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                    : "bg-white text-slate-700 border-slate-300 hover:border-slate-500 hover:shadow-sm"
+                onClick={() => setPreset(r)}
+                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                  preset === r ? "bg-blue-600 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
-                {r === "TODAY"
-                  ? "Today"
-                  : r === "LAST_7"
-                  ? "Last 7 days"
-                  : "Last 30 days"}
+                {r.replace("_", " ")}
               </button>
             ))}
-          </div>
-
-          <div className="flex gap-2 text-sm items-center flex-wrap">
-            <span className="text-slate-500 font-medium">Custom:</span>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-            />
-            <span className="text-slate-500">to</span>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-            />
-            <button
-              onClick={() => {
-                setPreset("CUSTOM");
-                applyRange("CUSTOM", from, to);
-              }}
-              className="px-4 py-2 rounded-lg border-2 bg-white border-slate-300 hover:bg-slate-50 font-medium text-sm transition-all"
-            >
-              Apply
-            </button>
+            <div className="h-4 w-[1px] bg-slate-200 mx-2" />
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="text-[10px] font-bold outline-none bg-transparent" />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-[10px] font-bold outline-none bg-transparent" />
+            <button onClick={() => setPreset("CUSTOM")} className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase">Go</button>
           </div>
         </div>
 
-        {/* Sales Summary */}
-        <div className="bg-white rounded-2xl shadow-lg border p-6">
-          <h1 className="text-2xl font-bold text-slate-900 mb-6 border-b pb-3">
-            💰 Sales Summary
-          </h1>
+        {/* Top Level Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: "Revenue", val: `₹${summary?.totalAmount.toLocaleString()}`, color: "text-emerald-600" },
+            { label: "Orders", val: summary?.totalOrders, color: "text-blue-600" },
+            { label: "Cash", val: `₹${summary?.byPayment.CASH.toLocaleString()}`, color: "text-orange-600" },
+            { label: "Digital", val: `₹${(summary?.byPayment.UPI || 0) + (summary?.byPayment.CARD || 0)}`, color: "text-purple-600" }
+          ].map((stat, i) => (
+            <div key={i} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className={`text-2xl font-black ${stat.color}`}>{stat.val || 0}</p>
+            </div>
+          ))}
+        </div>
 
-          {summary ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 shadow-sm">
-                <div className="text-sm text-emerald-700 font-medium uppercase tracking-wide">Total Sales</div>
-                <div className="text-3xl font-black text-emerald-700 mt-1">₹{summary.totalAmount.toLocaleString()}</div>
-              </div>
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 shadow-sm">
-                <div className="text-sm text-blue-700 font-medium uppercase tracking-wide">Total Bills</div>
-                <div className="text-3xl font-black text-blue-700 mt-1">{summary.totalOrders}</div>
-              </div>
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 shadow-sm">
-                <div className="text-sm text-orange-700 font-medium uppercase tracking-wide">Cash</div>
-                <div className="text-3xl font-black text-orange-700 mt-1">₹{summary.byPayment.CASH.toLocaleString()}</div>
-              </div>
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 shadow-sm">
-                <div className="text-sm text-purple-700 font-medium uppercase tracking-wide">Digital</div>
-                <div className="text-lg font-black text-purple-700 mt-1">
-                  UPI ₹{summary.byPayment.UPI.toLocaleString()}
+        {/* --- SIMPLIFIED CATEGORY WISE BREAKDOWN --- */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-5 border-b bg-slate-50/50">
+            <h2 className="text-xs font-black uppercase text-slate-700">Category-wise Sales</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            {Object.entries(categorySummary).map(([catName, stats]) => (
+              <div key={catName} className="p-6 hover:bg-slate-50 transition-colors">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{catName}</p>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-2xl font-black text-slate-800">₹{stats.total.toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-blue-600 uppercase">Items Sold: {stats.qty}</p>
+                  </div>
                 </div>
-                <div className="text-sm text-purple-600">Card ₹{summary.byPayment.CARD.toLocaleString()}</div>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-slate-500">
-              <div className="text-4xl mb-3">📊</div>
-              <div>No sales data available for selected period</div>
-            </div>
-          )}
-        </div>
-
-        {/* ✅ UPDATED: Category-wise Sales with Quantity */}
-        <div className="bg-white rounded-2xl shadow-lg border p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-6 border-b pb-3">
-            🍽️ Category-wise Sales
-          </h2>
-
-          {Object.keys(categorySummary).length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <div className="text-4xl mb-3">📦</div>
-              <div>No category data available</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(categorySummary)
-                .sort(([,a], [,b]) => b - a) // Sort by amount descending
-                .map(([cat, amt]) => {
-                  const quantity = getCategoryQuantity(cat);
-                  return (
-                    <div
-                      key={cat}
-                      className="group p-6 rounded-2xl bg-gradient-to-br from-slate-50 via-white to-slate-50 border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 hover:border-orange-300"
-                    >
-                      {/* Category Icon & Name */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <span className="text-2xl">
-                            {cat === 'SHAWARMA' ? '🌯' : 
-                             cat === 'CHAAT' ? '🧆' : 
-                             cat === 'JUICE' ? '🧃' : 
-                             cat === 'ICE_CREAM' ? '🍦' : '🍽️'}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-bold text-xl text-slate-900 capitalize tracking-tight">
-                            {cat.replace('_', ' ')}
-                          </div>
-                          <div className="text-sm text-slate-500">{quantity} items sold</div>
-                        </div>
-                      </div>
-                      
-                      {/* Amount */}
-                      <div className="text-3xl font-black bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent mb-3">
-                        ₹{amt.toLocaleString()}
-                      </div>
-                      
-                      {/* Progress-like bar */}
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-500"
-                          style={{width: `${Math.min((amt / Math.max(...Object.values(categorySummary))) * 100, 100)}%`}}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-
-        {/* Bills Table */}
-        <div className="bg-white rounded-2xl shadow-lg border p-6">
-          <div className="flex justify-between items-center mb-6 pb-3 border-b">
-            <h2 className="text-xl font-bold text-slate-900">
-              📋 Bills in selected period ({orders.length})
-            </h2>
-            <button 
-              onClick={() => window.print()}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 font-medium shadow-sm transition-all"
-            >
-              🖨️ Print Report
-            </button>
+            ))}
           </div>
-
-          {orders.length === 0 ? (
-            <div className="text-center py-16 text-slate-500">
-              <div className="text-5xl mb-4">📄</div>
-              <div className="text-lg font-medium mb-2">No bills found</div>
-              <div className="text-sm">Try adjusting the date range above</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse bg-white rounded-xl overflow-hidden shadow-inner">
-                <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Date</th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Time</th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Bill ID</th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Items</th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-right font-semibold text-slate-700">Total</th>
-                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Payment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((o) => {
-                    const d = new Date(o.createdAt);
-                    const grouped = groupItemsByCategory(o.items);
-
-                    return (
-                      <tr key={o.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="border-b border-slate-100 px-4 py-3 font-medium">
-                          {d.toLocaleDateString('en-IN')}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-slate-600">
-                          {d.toLocaleTimeString('en-IN', { hour12: false })}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 font-semibold text-orange-600">
-                          #{o.id.slice(-6)}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3">
-                          {Object.entries(grouped).map(([cat, items]) => (
-                            <div key={cat} className="mb-2 pb-1 border-b border-dotted border-slate-200 last:border-b-0">
-                              <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1">
-                                {cat}
-                              </div>
-                              <div className="text-xs text-slate-600 pl-2">
-                                {(items as any[])
-                                  .map((i: any) => `${i.name} x${i.qty}`)
-                                  .join(", ")}
-                              </div>
-                            </div>
-                          ))}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 text-right font-bold text-lg text-emerald-700">
-                          ₹{o.total.toLocaleString()}
-                        </td>
-                        <td className="border-b border-slate-100 px-4 py-3 font-semibold">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            o.paymentMethod === 'CASH' 
-                              ? 'bg-green-100 text-green-800' 
-                              : o.paymentMethod === 'UPI'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {o.paymentMethod}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          {Object.keys(categorySummary).length === 0 && (
+            <div className="py-10 text-center text-slate-400 text-[10px] font-bold uppercase">No Category Data</div>
           )}
         </div>
 
+        {/* Main Transaction Table */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h2 className="text-sm font-black text-slate-800 uppercase">Detailed Transaction Log</h2>
+            <button onClick={() => window.print()} className="text-[10px] font-bold border px-4 py-2 rounded-xl hover:bg-slate-50 uppercase">Print Report</button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                  <th className="px-6 py-4">Timing</th>
+                  <th className="px-6 py-4">Source</th>
+                  <th className="px-6 py-4">ID</th>
+                  <th className="px-6 py-4">Order Items</th>
+                  <th className="px-6 py-4 text-right">Total</th>
+                  <th className="px-6 py-4 text-center">Payment</th>
+                  <th className="px-6 py-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {orders.map((o) => (
+                  <tr key={o.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="text-[11px] font-bold text-slate-700">{new Date(o.createdAt).toLocaleDateString('en-IN')}</p>
+                      <p className="text-[10px] text-slate-400">{new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      {o.isParcel ? (
+                        <span className="bg-orange-100 text-orange-700 text-[9px] font-black px-2 py-1 rounded-md uppercase">Parcel</span>
+                      ) : (
+                        <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-1 rounded-md uppercase">
+                          Table: {o.tableNumber}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-[10px] font-bold text-slate-400">#{o.id.slice(-6)}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-[11px] text-slate-600 leading-relaxed max-w-xs">
+                        {o.items.map((i, idx) => (
+                          <span key={idx}>
+                            {i.name} <span className="text-slate-400 font-bold">x{i.qty}</span>
+                            {idx < o.items.length - 1 ? ", " : ""}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <p className="text-sm font-black text-slate-800">₹{o.total}</p>
+                    </td>
+                    <td className="px-6 py-4 text-center font-black text-[9px] uppercase">{o.paymentMethod}</td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={() => handleDeleteOrder(o.id)} className="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
