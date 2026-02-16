@@ -15,11 +15,9 @@ const categories = [
   "Chaats",
   "Vada Pav",
   "Pav Bhaji",
-  "Biryani",
   "Juice",
   "Ice Cream",
   "Water",
-  "Grill Chicken",
 ];
 
 // New: table numbers list
@@ -140,26 +138,31 @@ export default function BillingPage() {
         <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-2rem)]">
           {/* PRODUCTS */}
           <section className="flex-1 bg-white rounded-2xl shadow-xl p-4 flex flex-col">
-            {/* CATEGORY BAR */}
-<div className="sticky top-0 z-10 bg-white pb-3 border-b mb-3">
-  <div className="grid grid-cols-7 gap-2">
-    {categories.map((cat) => (
-      <button
-        key={cat}
-        onClick={() => setActiveCategory(cat)}
-        className={`px-3 py-2 rounded-full font-bold text-sm transition-all text-center
-          ${
-            activeCategory === cat
-              ? "bg-blue-600 text-white shadow-md scale-105"
-              : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
-      >
-        {cat}
-      </button>
-    ))}
-  </div>
-</div>
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-3">
+              <h1 className="text-lg font-bold">Menu Items</h1>
+              <span className="text-sm text-slate-500">Tap to add</span>
+            </div>
 
+            {/* CATEGORY BAR */}
+            <div className="sticky top-0 z-10 bg-white pb-3 border-b mb-3">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-5 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all
+                      ${
+                        activeCategory === cat
+                          ? "bg-blue-600 text-white shadow-md scale-105"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* PRODUCTS GRID */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3 overflow-y-auto auto-rows-max">
@@ -342,7 +345,7 @@ export default function BillingPage() {
 
       {/* Print Receipt - Optimized for 58mm thermal */}
       {showReceipt && lastOrder && (
-        <div className="print-only text-sm sm:text-sm p-2 w-[58mm] max-w-[58mm] mx-auto">
+        <div className="print-only text-lg sm:text-lg p-2 w-[58mm] max-w-[58mm] mx-auto">
           <div className="text-center mb-2 pb-1">
             <div className="font-black text-lg tracking-tight">
               S.A.R Food House
@@ -353,6 +356,7 @@ export default function BillingPage() {
             <div className="text-xs mt-1 border-t border-dashed pt-1">
               Bill: {lastOrder.id.slice(-6)} | {new Date(lastOrder.createdAt).toLocaleString('en-IN')}
             </div> */}
+            
             <div className="text-xs font-medium">
               PMT: {lastOrder.paymentMethod}
             </div>
@@ -371,26 +375,29 @@ export default function BillingPage() {
           <div className="border-t border-dashed my-1" />
 
           {lastOrder.items.map((item) => (
-            <div
-              key={item.id}
-              className="flex justify-between text-sm my-1 "
-            >
-              <span className="truncate flex-1">
-                {item.name} × {item.qty}
-              </span>
-              <span className="w-16 text-right font-medium">
-                ₹{item.price * item.qty}
-              </span>
-            </div>
-          ))}
+          <div
+            key={item.id}
+            className="flex justify-between text-lg my-1 items-start gap-2"
+           >
+    
+          <span className="flex-1 break-words">
+             {item.name} × {item.qty}
+          </span>
+    
+    
+         <span className="w-20 text-right font-medium flex-shrink-0">
+            ₹{item.price * item.qty}
+          </span>
+         </div>
+       ))}
 
-          {/* Show parcel charge line if applicable */}
-          {"isParcel" in lastOrder && lastOrder.isParcel && (
-            <div className="flex justify-between text-lg my-1">
-              <span className="truncate flex-1">Parcel Charge</span>
-              <span className="w-16 text-right font-medium">₹10</span>
-            </div>
-          )}
+{/* Do the same for the Parcel Charge line */}
+{"isParcel" in lastOrder && lastOrder.isParcel && (
+  <div className="flex justify-between text-lg my-1 items-start gap-2">
+    <span className="flex-1 break-words">Parcel Charge</span>
+    <span className="w-20 text-right font-medium flex-shrink-0">₹10</span>
+  </div>
+)}
 
           <div className="border-t border-dashed my-1 pt-1" />
           <div className="flex justify-between font-bold text-lg mb-2">
