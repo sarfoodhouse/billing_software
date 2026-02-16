@@ -144,5 +144,15 @@ export const products: Product[] = [
   //Grill Chicken
   { id: "gc1", name: "Grill Chicken Full", price: 400, category: "Grill Chicken" },
   { id: "gc2", name: "Grill Chicken Half", price: 230, category: "Grill Chicken" },
+
+  //Haleem
+  { id: "hl1", name: "Mutton Haleem Large ", price: 300, category: "Haleem" },
+  { id: "hl2", name: "Mutton Haleem Medium", price: 150, category: "Haleem" },
+  { id: "hl3", name: "Mutton Haleem Small", price: 100, category: "Haleem" },
+  { id: "hl4", name: "Chicken Haleem Large ", price: 240, category: "Haleem" },
+  { id: "hl5", name: "chicken Haleem Medium", price: 120, category: "Haleem" },
+  { id: "hl6", name: "chicken Haleem Small", price: 70, category: "Haleem" },
+
+   
   
 ];
