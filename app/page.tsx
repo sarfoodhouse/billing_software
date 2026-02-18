@@ -50,25 +50,14 @@ export default function BillingPage() {
       }
       return [...prev, { ...prod, qty: 1 }];
     });
-    if (isParcel) {
-      setParcelCharge(prev => prev + 10);
-    }
+    // Add logic here if you want automatic parcel charging per item added
   };
 
   const updateQty = (id: string, qty: number) => {
-    const item = cart.find(i => i.id === id);
-    if (!item) return;
-    const qtyDiff = qty - item.qty;
     if (qty <= 0) {
       setCart((prev) => prev.filter((i) => i.id !== id));
-      if (isParcel) {
-        setParcelCharge(prev => Math.max(0, prev - 10 * item.qty));
-      }
     } else {
       setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty } : i)));
-      if (isParcel) {
-        setParcelCharge(prev => Math.max(0, prev + 10 * qtyDiff));
-      }
     }
   };
 
@@ -88,6 +77,7 @@ export default function BillingPage() {
     if (occupiedTables[t]) {
       setCart(occupiedTables[t].items);
       setIsParcel(occupiedTables[t].isParcel);
+      // Recalculate parcel charge based on current logic or stored state
       const newParcelCharge = occupiedTables[t].isParcel ? occupiedTables[t].items.reduce((sum, item) => sum + 10 * item.qty, 0) : 0;
       setParcelCharge(newParcelCharge);
     } else {
@@ -111,22 +101,25 @@ export default function BillingPage() {
     setParcelCharge(0);
   };
 
-  // Directly call the save and print logic
   const handleSaveAndPrint = () => {
     if (cart.length === 0) return;
-    const order = {
+
+    // Fixed: Matching the Order type exactly
+    const order: Order = {
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       items: cart,
-      total,
+      subtotal: subtotal,
+      total: total,
       paymentMethod,
       tableNumber: selectedTable,
       isParcel,
       customerName: customerName || "Walk-in",
       parcelCharge,
     };
+
     saveOrder(order); 
-    setLastOrder(order as any); 
+    setLastOrder(order); 
     setShowReceipt(true);
 
     setTimeout(() => {
@@ -155,7 +148,7 @@ export default function BillingPage() {
         
         {/* LEFT: TABLE STATUS */}
         <section className="w-28 bg-white rounded-xl border border-slate-200 flex flex-col items-center py-3 overflow-y-auto gap-3 shadow-sm">
-          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Table Status</p>
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tables</p>
           {tableNumbers.map((t) => {
             const isOccupied = !!occupiedTables[t];
             return (
@@ -171,7 +164,7 @@ export default function BillingPage() {
                 }`}
               >
                 <span className="text-sm font-black">{t}</span>
-                <span className="text-xs font-bold opacity-80 uppercase">
+                <span className="text-[10px] font-bold opacity-80 uppercase">
                   {isOccupied ? "Busy" : "Free"}
                 </span>
               </button>
@@ -200,7 +193,7 @@ export default function BillingPage() {
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
             />
           </div>
 
@@ -238,19 +231,19 @@ export default function BillingPage() {
               placeholder="Customer Name (Optional)"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-3 py-2 mb-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 mb-3 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none"
             />
             
             <div className="flex gap-2">
               <button 
                 onClick={() => {setIsParcel(false); setParcelCharge(0);}} 
-                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${!isParcel ? "bg-emerald-600 border-emerald-600 shadow-lg shadow-emerald-900/20" : "bg-slate-800 border-slate-700 text-slate-500"}`}
+                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${!isParcel ? "bg-emerald-600 border-emerald-600 shadow-lg" : "bg-slate-800 border-slate-700 text-slate-500"}`}
               >
                 DINE-IN
               </button>
               <button 
                 onClick={() => {setIsParcel(true); setParcelCharge(10 * totalItems);}} 
-                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${isParcel ? "bg-orange-600 border-orange-600 shadow-lg shadow-orange-900/20" : "bg-slate-800 border-slate-700 text-slate-500"}`}
+                className={`flex-1 py-3 rounded-lg text-sm font-black border transition-all ${isParcel ? "bg-orange-600 border-orange-600 shadow-lg" : "bg-slate-800 border-slate-700 text-slate-500"}`}
               >
                 PARCEL
               </button>
@@ -265,12 +258,12 @@ export default function BillingPage() {
                 <div key={item.id} className="bg-slate-800/40 p-3 rounded-lg flex justify-between items-center border border-slate-800/50">
                   <div className="flex-1 pr-2">
                     <p className="text-sm font-bold">{item.name}</p>
-                    <p className="text-sm text-slate-500">₹{item.price} each</p>
+                    <p className="text-xs text-slate-500">₹{item.price} each</p>
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-900 rounded p-2">
-                    <button onClick={() => updateQty(item.id, item.qty - 1)} className="w-6 h-6 text-blue-400 font-bold hover:bg-slate-700 rounded">-</button>
-                    <span className="text-sm font-bold w-6 text-center">{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, item.qty + 1)} className="w-6 h-6 text-blue-400 font-bold hover:bg-slate-700 rounded">+</button>
+                  <div className="flex items-center gap-2 bg-slate-900 rounded p-1">
+                    <button onClick={() => updateQty(item.id, item.qty - 1)} className="w-8 h-8 text-blue-400 font-bold hover:bg-slate-700 rounded">-</button>
+                    <span className="text-sm font-bold w-4 text-center">{item.qty}</span>
+                    <button onClick={() => updateQty(item.id, item.qty + 1)} className="w-8 h-8 text-blue-400 font-bold hover:bg-slate-700 rounded">+</button>
                   </div>
                 </div>
               ))
@@ -287,14 +280,14 @@ export default function BillingPage() {
                 <div className="flex justify-between items-center text-sm text-orange-400">
                   <span>Parcel Charge</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => adjustParcelCharge(-10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded hover:bg-slate-600">-</button>
+                    <button onClick={() => adjustParcelCharge(-10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded">-</button>
                     <span>₹{parcelCharge}</span>
-                    <button onClick={() => adjustParcelCharge(10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded hover:bg-slate-600">+</button>
+                    <button onClick={() => adjustParcelCharge(10)} className="w-6 h-6 bg-slate-700 text-orange-400 font-bold rounded">+</button>
                   </div>
                 </div>
               )}
               <div className="flex justify-between items-end pt-2 border-t border-slate-600">
-                <span className="text-white text-lg font-bold uppercase">Total Payable</span>
+                <span className="text-white text-lg font-bold uppercase">Total</span>
                 <span className="text-4xl font-black text-white">₹{total}</span>
               </div>
             </div>
@@ -315,14 +308,14 @@ export default function BillingPage() {
               <button
                 onClick={holdOrder}
                 disabled={!selectedTable || cart.length === 0}
-                className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 py-3 rounded-xl font-bold text-sm uppercase transition-all"
+                className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 py-3 rounded-xl font-bold text-xs uppercase"
               >
-                Hold Order
+                Hold
               </button>
               <button
                 onClick={handleSaveAndPrint}
                 disabled={cart.length === 0}
-                className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 py-3 rounded-xl font-black text-sm tracking-widest shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+                className="flex-[2] bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 py-3 rounded-xl font-black text-sm tracking-widest shadow-lg active:scale-95"
               >
                 SETTLE & PRINT
               </button>
@@ -339,22 +332,22 @@ export default function BillingPage() {
       {showReceipt && lastOrder && (
         <div className="print-only hidden p-2 w-[58mm] mx-auto text-black font-mono">
           <div className="text-center font-bold text-xl mb-1">S.A.R FOOD HOUSE</div>
-          <div className="text-[15px] text-center border-b border-dashed pb-1 mb-2 italic">
-            {lastOrder.tableNumber ? `Table: ${lastOrder.tableNumber}` : 'Parcel'} | {new Date().toLocaleTimeString()}
+          <div className="text-[14px] text-center border-b border-dashed pb-1 mb-2 italic">
+            {lastOrder.tableNumber ? `Table: ${lastOrder.tableNumber}` : 'Parcel'} | {new Date(lastOrder.createdAt).toLocaleTimeString()}
           </div>
           {lastOrder.items.map((item) => (
-            <div key={item.id} className="flex justify-between text-[15px] mb-1">
+            <div key={item.id} className="flex justify-between text-[14px] mb-1">
               <span className="flex-1">{item.name} x{item.qty}</span>
               <span>₹{item.price * item.qty}</span>
             </div>
           ))}
-          {lastOrder.isParcel && <div className="flex justify-between text-[15px]"><span>Parcel Charge</span><span>₹{lastOrder.parcelCharge}</span></div>}
+          {lastOrder.isParcel && <div className="flex justify-between text-[14px]"><span>Parcel Charge</span><span>₹{lastOrder.parcelCharge}</span></div>}
           <div className="border-t border-dashed mt-1 pt-1 flex justify-between font-bold text-base">
             <span>TOTAL</span>
             <span>₹{lastOrder.total}</span>
           </div>
-          <div className="text-center text-[15px] mt-2">Payment: {lastOrder.paymentMethod}</div>
-          <div className="text-center text-[15px] mt-4 uppercase">--- Thank You ---</div>
+          <div className="text-center text-[14px] mt-2">Payment: {lastOrder.paymentMethod}</div>
+          <div className="text-center text-[14px] mt-4 uppercase">--- Thank You ---</div>
         </div>
       )}
     </>
