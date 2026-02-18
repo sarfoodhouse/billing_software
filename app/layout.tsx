@@ -80,6 +80,14 @@ export default function RootLayout({
                   <span className="h-2 w-2 rounded-full bg-orange-500" />
                   Tracker
                 </Link>
+                <Link
+                  href="/menu"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  <span className="h-2 w-2 rounded-full bg-orange-500" />
+                  Menu
+                </Link>
               </nav>
 
               <div className="p-2 border-t border-slate-50 bg-slate-50/50 text-center">
