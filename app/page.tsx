@@ -98,8 +98,11 @@ export default function BillingPage() {
         id: "KOT-" + Date.now().toString(),
         createdAt: new Date().toISOString(),
         items: cart,
-        subtotal, total, paymentMethod: "CASH",
+        subtotal, 
+        total, 
+        paymentMethod: "CASH",
         tableNumber: selectedTable,
+        customerName: "Table Guest", // Added to fix type error
         isParcel,
         parcelCharge,
     };
@@ -117,8 +120,11 @@ export default function BillingPage() {
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
       items: cart,
-      subtotal, total, paymentMethod: "CASH",
-      tableNumber: selectedTable,
+      subtotal, 
+      total, 
+      paymentMethod: "CASH",
+      tableNumber: selectedTable || "Counter",
+      customerName: "Walk-in", // Added to fix type error
       isParcel,
       parcelCharge,
     };
@@ -139,7 +145,7 @@ export default function BillingPage() {
     <>
       <div className="no-print h-screen w-full bg-slate-100 flex overflow-hidden font-sans p-2 gap-2">
         
-        {/* LEFT: SLIM TABLES (Red for Occupied) */}
+        {/* LEFT: SLIM TABLES */}
         <section className="w-16 bg-white rounded-xl border flex flex-col items-center py-2 overflow-y-auto gap-2">
           <div className="mt-12"></div> 
           <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Tables</p>
@@ -219,20 +225,8 @@ export default function BillingPage() {
             </div>
             
             <div className="flex gap-2">
-              <button 
-                onClick={holdOrder} 
-                disabled={!selectedTable || cart.length === 0} 
-                className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-[10px] uppercase transition-all"
-              >
-                Hold / KOT
-              </button>
-              <button 
-                onClick={handleSaveAndPrint} 
-                disabled={cart.length === 0} 
-                className="flex-[2] bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-black text-xs uppercase shadow-lg transition-all"
-              >
-                Settle & Print
-              </button>
+              <button onClick={holdOrder} disabled={!selectedTable || cart.length === 0} className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-[10px] uppercase transition-all">Hold/KOT</button>
+              <button onClick={handleSaveAndPrint} disabled={cart.length === 0} className="flex-[2] bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-black text-xs uppercase shadow-lg transition-all">Settle & Print</button>
             </div>
           </div>
         </section>
