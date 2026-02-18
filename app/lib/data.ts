@@ -148,11 +148,11 @@ export const products: Product[] = [
 
   //Haleem
   { id: "hl1", name: "Mutton Haleem Large ", price: 300, category: "Haleem" },
-  { id: "hl2", name: "Mutton Haleem Medium", price: 150, category: "Haleem" },
+  { id: "hl2", name: "Mutton Haleem Medium", price: 180, category: "Haleem" },
   { id: "hl3", name: "Mutton Haleem Small", price: 100, category: "Haleem" },
-  { id: "hl4", name: "Chicken Haleem Large ", price: 240, category: "Haleem" },
-  { id: "hl5", name: "chicken Haleem Medium", price: 120, category: "Haleem" },
-  { id: "hl6", name: "chicken Haleem Small", price: 70, category: "Haleem" },
+  { id: "hl4", name: "Chicken Haleem Large ", price: 250, category: "Haleem" },
+  { id: "hl5", name: "chicken Haleem Medium", price: 130, category: "Haleem" },
+  { id: "hl6", name: "chicken Haleem Small", price: 80, category: "Haleem" },
 
    
   
