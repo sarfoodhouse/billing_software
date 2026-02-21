@@ -7,7 +7,7 @@ import { saveOrder } from "./lib/storage";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "./lib/auth";
 
-const categories = ["Shawarma", "Fries & Sandwich", "Puri", "Chaats", "Vada Pav", "Pav Bhaji", "Juice", "Ice Cream", "Water", "Grill Chicken", "Haleem"];
+const categories = ["Shawarma", "Fries & Sandwich", "Puri", "Chaats", "Vada Pav", "Pav Bhaji", "Juice", "Ice Cream", "Water", "Grill Chicken", "Haleem", "Biryani"];
 const tableNumbers = ["T1", "T2", "T3", "T4", "T5", "B1", "B2", "B3", "B4"];
 
 interface ActiveTable {
