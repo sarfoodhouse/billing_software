@@ -233,17 +233,17 @@ export const products: Product[] = [
   { id: "STR15", name: "Juicy Chicken Lollipop (4 pcs)", price: 170, category: "Starters" },
 
   // BIRYANI
-  { id: "BRY1", name: "Veg Biryani", price: 80, category: "Biryani" },
-  { id: "BRY2", name: "Mix Veg Biryani", price: 90, category: "Biryani" },
-  { id: "BRY3", name: "Mushroom Biryani", price: 120, category: "Biryani" },
-  { id: "BRY4", name: "Paneer Biryani", price: 120, category: "Biryani" },
-  { id: "BRY5", name: "Chicken Dum Biryani", price: 120, category: "Biryani" },
-  { id: "BRY6", name: "Fry Piece Chicken Biryani", price: 140, category: "Biryani" },
-  { id: "BRY7", name: "Chicken Lollipop Biryani", price: 150, category: "Biryani" },
-  { id: "BRY8", name: "Chicken Tikka Biryani", price: 170, category: "Biryani" },
-  { id: "BRY9", name: "Chicken Kalmi Biryani", price: 190, category: "Biryani" },
-  { id: "BRY10", name: "Chicken Tandoori Biryani", price: 190, category: "Biryani" },
-  { id: "BRY11", name: "S.A.R Special Biryani", price: 200, category: "Biryani" },
+  { id: "by3", name: "Veg Biryani", price: 80, category: "Biryani" },
+  { id: "by4", name: "Mix Veg Biryani", price: 90, category: "Biryani" },
+  { id: "by5", name: "Mushroom Biryani", price: 120, category: "Biryani" },
+  { id: "by6", name: "Paneer Biryani", price: 120, category: "Biryani" },
+  { id: "by7", name: "Chicken Dum Biryani", price: 120, category: "Biryani" },
+  { id: "by8", name: "Fry Piece Chicken Biryani", price: 140, category: "Biryani" },
+  { id: "by9", name: "Chicken Lollipop Biryani", price: 150, category: "Biryani" },
+  { id: "by10", name: "Chicken Tikka Biryani", price: 170, category: "Biryani" },
+  { id: "by11", name: "Chicken Kalmi Biryani", price: 190, category: "Biryani" },
+  { id: "by12", name: "Chicken Tandoori Biryani", price: 190, category: "Biryani" },
+  { id: "by13", name: "S.A.R Special Biryani", price: 200, category: "Biryani" },
 
   // FRIED RICE
   { id: "FRD1", name: "Veg Fried Rice", price: 70, category: "Fried Rice" },
