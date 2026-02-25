@@ -1,6 +1,34 @@
 // lib/types.ts
 
-export type Category = "Shawarma" | "Puri"| "Pav Bhaji" | "Fries & Sandwich" | "Chaats" | "Juice" | "Ice Cream" | "Vada Pav" | "Water" | "Biryani" | "Grill Chicken"|"Haleem" ;
+export type Category =
+  | "Shawarma"
+  | "Puri"
+  | "Pav Bhaji"
+  | "Fries & Sandwich"
+  | "Chaats"
+  | "Juice"
+  | "Ice Cream"
+  | "Vada Pav"
+  | "Water"
+  | "Biryani"
+  | "Grill Chicken"
+  | "Haleem"
+  | "Fried Chicken"
+  | "Burgers"
+  | "Chicken Roll"
+  | "Snack Attack"
+  | "Pizza"
+  | "Starters"
+  | "Fried Rice"
+  | "Noodles"
+  | "Veg Curries"
+  | "Non-Veg Curries"
+  | "Tandoori"
+  | "Breads"
+  | "Rice & Others"
+  | "Crispy"
+  | "Chicken Sandwich"
+  | "Veg Sandwich";
 
 export interface Product {
   id: string;
