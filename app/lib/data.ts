@@ -2,28 +2,28 @@ import { Product } from "./types";
 
 export const products: Product[] = [
   // Shawarma items
-  { id: "sh1", name: "Classic Shawarma", price: 79, category: "Shawarma" },
-  { id: "sh2", name: "Special Shawarma", price: 99, category: "Shawarma" },
-  { id: "sh3", name: "Peri Peri Shawarma", price: 120, category: "Shawarma" },
+  { id: "sh1", name: "Classic Shawarma", price: 90, category: "Shawarma" },
+  { id: "sh2", name: "Special Shawarma", price: 110, category: "Shawarma" },
+  { id: "sh3", name: "Peri Peri Shawarma", price: 130, category: "Shawarma" },
   { id: "sh4", name: "Lebanese Shawarma", price: 140, category: "Shawarma" },
   { id: "sh5", name: "Turkish Shawarma", price: 150, category: "Shawarma" },
   { id: "sh6", name: "King Size Shawarma", price: 170, category: "Shawarma" },
   { id: "sh7", name: "S.A.R Shawarma", price: 180, category: "Shawarma" },
-  { id: "sh8", name: "Classic Platter Shawarma", price: 120, category: "Shawarma" },
-  { id: "sh9", name: "Special Platter Shawarma", price: 150, category: "Shawarma" },
-  { id: "sh10", name: "S.A.R Platter Shawarma", price: 180, category: "Shawarma" },
+  { id: "sh8", name: "Classic Platter Shawarma", price: 140, category: "Shawarma" },
+  { id: "sh9", name: "Special Platter Shawarma", price: 170, category: "Shawarma" },
+  { id: "sh10", name: "S.A.R Platter Shawarma", price: 199, category: "Shawarma" },
 
   // Fries
-  { id: "FF1", name: "Classic Fries", price: 50, category: "Fries & Sandwich" },
-  { id: "FF2", name: "Peri Peri Fries", price: 60, category: "Fries & Sandwich" },
-  { id: "FF3", name: "Cheese Fries", price: 80, category: "Fries & Sandwich" },
-  { id: "FF4", name: "Special Chicken Fries", price: 99, category: "Fries & Sandwich" },
+  // { id: "FF1", name: "Classic Fries", price: 50, category: "Fries & Sandwich" },
+  // { id: "FF2", name: "Peri Peri Fries", price: 60, category: "Fries & Sandwich" },
+  // { id: "FF3", name: "Cheese Fries", price: 80, category: "Fries & Sandwich" },
+  // { id: "FF4", name: "Special Chicken Fries", price: 99, category: "Fries & Sandwich" },
 
   //Sandwhich
-  { id: "FF5", name: "Veg Sandwich", price: 60, category: "Fries & Sandwich" },
-  { id: "FF6", name: "Cheese Sandwich", price: 80, category: "Fries & Sandwich" },
-  { id: "FF7", name: "Butter Sandwich", price: 80, category: "Fries & Sandwich" },
-  { id: "FF8", name: "Panner Sandwich", price: 80, category: "Fries & Sandwich" },
+  // { id: "FF5", name: "Veg Sandwich", price: 60, category: "Fries & Sandwich" },
+  // { id: "FF6", name: "Cheese Sandwich", price: 80, category: "Fries & Sandwich" },
+  // { id: "FF7", name: "Butter Sandwich", price: 80, category: "Fries & Sandwich" },
+  // { id: "FF8", name: "Panner Sandwich", price: 80, category: "Fries & Sandwich" },
 
   //Pav Bhaji
   { id: "pb1", name: "Classic Pav Bhaji", price: 50, category: "Pav Bhaji" },
@@ -70,20 +70,21 @@ export const products: Product[] = [
   { id: "j5", name: "Orange Fresh", price: 50, category: "Juice" },
   { id: "j6", name: "Guava Fresh", price: 50, category: "Juice" },
   { id: "j7", name: "Graps Fresh", price: 60, category: "Juice" },
+  { id: "j7", name: "Sapoto Fresh", price: 50, category: "Juice" },
   { id: "j8", name: "Pomegranate Fresh", price: 60, category: "Juice" },
   { id: "j9", name: "Mix Fruit Fresh", price: 70, category: "Juice" },
   { id: "j10", name: "S.A.R Special Fresh", price: 60, category: "Juice" },
-  { id: "j11", name: "Lime Moktail", price: 50, category: "Juice" },
-  { id: "j12", name: "BlackCurrant Moktail", price: 50, category: "Juice" },
-  { id: "j13", name: "BlueBerry Moktail", price: 50, category: "Juice" },
-  { id: "j14", name: "Strawberry Moktail", price: 50, category: "Juice" },
-  { id: "j15", name: "Mango Moktail", price: 50, category: "Juice" },
-  { id: "j16", name: "Orange Moktail", price: 50, category: "Juice" },
+  { id: "j11", name: "Lime Moktail", price: 70, category: "Juice" },
+  { id: "j12", name: "BlackCurrant Moktail", price: 70, category: "Juice" },
+  { id: "j13", name: "BlueBerry Moktail", price: 70, category: "Juice" },
+  { id: "j14", name: "Strawberry Moktail", price: 70, category: "Juice" },
+  { id: "j15", name: "Mango Moktail", price: 70, category: "Juice" },
+  { id: "j16", name: "Orange Moktail", price: 70, category: "Juice" },
   { id: "j17", name: "Muskmelon MS", price: 50, category: "Juice" },
   { id: "j18", name: "Banana MilkShake", price: 50, category: "Juice" },
   { id: "j19", name: "Mango MilkShake", price: 50, category: "Juice" },
-  { id: "j20", name: "Strawberry MS", price: 60, category: "Juice" },
-  { id: "j21", name: "Kiwi MilkShake", price: 80, category: "Juice" },
+  { id: "j20", name: "Strawberry MS", price: 80, category: "Juice" },
+  { id: "j21", name: "Kiwi Frush Juice", price: 60, category: "Juice" },
   { id: "j22", name: "Custard Apple MS", price: 80, category: "Juice" },
   { id: "j23", name: "Avacoda Milk Shake", price: 80, category: "Juice" },
   { id: "j24", name: "Dragon MilkShake", price: 80, category: "Juice" },
@@ -101,6 +102,9 @@ export const products: Product[] = [
   { id: "j36", name: "ABC", price: 80, category: "Juice" },
   { id: "j37", name: "Beetroot", price: 50, category: "Juice" },
   { id: "j38", name: "Carrot", price: 50, category: "Juice" },
+  { id: "j39", name: "Chikoo MilkShake", price: 100, category: "Juice" },
+  { id: "j40", name: "Chocolate Shake", price: 100, category: "Juice" },
+  { id: "j41", name: "Apple Frush Juice", price: 60, category: "Juice" },
 
 
   // Ice Cream items
@@ -201,6 +205,8 @@ export const products: Product[] = [
   { id: "s20", name: "Crispy Moms Reg", price: 60, category: "Snack Attack" },
   { id: "s21", name: "Veg Momos", price: 49, category: "Snack Attack" },
   { id: "s22", name: "Veg Fingers", price: 49, category: "Snack Attack" },
+  { id: "s23", name: "KurKure Moms", price: 110, category: "Snack Attack" },
+  { id: "s22", name: "Chicken Moms", price: 110, category: "Snack Attack" },
 
   //Pizza 
   { id: "p1", name: "Classic Chicken Pizza", price: 250, category: "Pizza" },
@@ -318,9 +324,7 @@ export const products: Product[] = [
   { id: "SVG1", name: "Italian Sweet Corn Sandwich", price: 90, category: "Veg Sandwich" },
   { id: "SVG2", name: "BBQ Paneer Sandwich", price: 90, category: "Veg Sandwich" },
   { id: "SVG3", name: "Cheese Corn Sandwich", price: 90, category: "Veg Sandwich" },
-  { id: "SVG4", name: "Tandoori Paneer Sandwich", price: 110, category: "Veg Sandwich" },
-
-  
+  { id: "SVG4", name: "Tandoori Paneer Sandwich", price: 110, category: "Veg Sandwich" },  
   
   
 ];
