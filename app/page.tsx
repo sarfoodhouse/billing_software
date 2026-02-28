@@ -271,7 +271,7 @@ export default function BillingPage() {
 
       {/* --- LARGE FONT PRINT TEMPLATE --- */}
       {showReceipt && lastOrder && (
-        <div className="print-only hidden mx-auto text-black font-mono leading-tight w-[58mm] p-1">
+        <div className="print-only hidden mx-auto text-black font-serif leading-tight w-[58mm] p-1">
           <div className="text-center font-bold mb-1 uppercase text-[16px]">
             {isMasterOnly ? "--- MASTER COPY ---" : "S.A.R FOOD HOUSE"}
           </div>
